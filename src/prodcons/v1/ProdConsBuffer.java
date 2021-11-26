@@ -3,6 +3,7 @@ package prodcons.v1;
 import prodcons.IProdConsBuffer;
 import prodcons.Message;
 
+import javax.management.monitor.Monitor;
 import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 
@@ -10,6 +11,8 @@ public class ProdConsBuffer implements IProdConsBuffer {
 
     private int bufferSz;
     private Message buffer[];
+    private static final Object monitorProd = new Object();
+    private static final Object monitorCons = new Object();
     Semaphore notFull;
     Semaphore notEmpty;
     Semaphore mutex;
@@ -34,33 +37,53 @@ public class ProdConsBuffer implements IProdConsBuffer {
     }
 
     @Override
-    public synchronized void put(Message m) throws InterruptedException {
+    public void put(Message m) throws InterruptedException {
 //        if( this.in == this.out ){
 //            return ;
 //        }
-        /**
-         * incrémente le nombre de message dans le buffer avec
-         * le nouveau message arrivé
-         */
-        this.tomsg++;
-        /**
-         * Incrémente le nombre totale de message
-         */
-        this.totmsg++;
-        this.buffer[ this.in ] = m;
-        this.in = ( this.in + 1 ) % this.bufferSz ;
+        synchronized ( monitorProd ){
+            while ( this.tomsg == 2 ){
+                System.out.println( m.toString() + " est en attente pour la production");
+                monitorProd.wait();
+            }
+            /**
+             * incrémente le nombre de message dans le buffer avec
+             * le nouveau message arrivé
+             */
+            this.tomsg++;
+            /**
+             * Incrémente le nombre totale de message
+             */
+            this.totmsg++;
+            this.buffer[ this.in ] = m;
+            this.in = ( this.in + 1 ) % this.bufferSz ;
+            synchronized ( monitorCons ){
+                monitorCons.notifyAll();
+            }
+        }
+
     }
 
     @Override
-    public synchronized Message get() throws InterruptedException {
-        /**
-         * Décrémenter le nombre de message dans le buffer
-         */
-        this.tomsg--;
-        Message m = this.buffer[ this.out ];
-        this.buffer[ this.out ] = null;
-        this.out = ( this.out + 1 ) % this.bufferSz ;
-        return m;
+    public Message get() throws InterruptedException {
+
+        synchronized ( monitorCons ){
+            while( this.tomsg == 0 ){
+                System.out.println( "le consommateur  est en attente de consommation de message");
+                monitorCons.wait();
+            }
+            /**
+             * Décrémenter le nombre de message dans le buffer
+             */
+            this.tomsg--;
+            Message m = this.buffer[ this.out ];
+            this.buffer[ this.out ] = null;
+            this.out = ( this.out + 1 ) % this.bufferSz ;
+//            synchronized (monitorProd){
+//                this.monitorProd.notifyAll();
+//            }
+            return m;
+        }
     }
 
     @Override
