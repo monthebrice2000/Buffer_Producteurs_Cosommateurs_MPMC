@@ -7,9 +7,10 @@ import prodcons.v1.ProdConsBuffer;
 public class Main {
 
     public static void main(String[] args) {
-        ProdConsBuffer prodConsBuffer = new ProdConsBuffer( 3 );
-        Thread[] producersThreads = new Thread[4];
-        Thread[] consumersThreads = new Thread[4];
+        System.out.println(" Nombre de processeurs : "+ Runtime.getRuntime().availableProcessors() );
+        ProdConsBuffer prodConsBuffer = new ProdConsBuffer( 2 );
+        Thread[] producersThreads = new Thread[3];
+        Thread[] consumersThreads = new Thread[5];
 
         for( int i = 0; i< consumersThreads.length; i++){
             consumersThreads[i] = new Thread(new Consumer( "thread "+ i, prodConsBuffer ), "thread " + i);
