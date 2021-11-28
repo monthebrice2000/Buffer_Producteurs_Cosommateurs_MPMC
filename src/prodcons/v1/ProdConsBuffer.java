@@ -1,6 +1,9 @@
 package prodcons.v1;
 
 import com.tontonlaforce.Operation;
+import com.tontonlaforce.SemaphoreConsommateur;
+import com.tontonlaforce.SemaphoreMutex;
+import com.tontonlaforce.SemaphoreProducteur;
 import prodcons.IProdConsBuffer;
 import prodcons.Message;
 
@@ -14,9 +17,9 @@ public class ProdConsBuffer implements IProdConsBuffer {
     private Message buffer[];
     private static final Object monitorProd = new Object();
     private static final Object monitorCons = new Object();
-    Semaphore notFull;
-    Semaphore notEmpty;
-    Semaphore mutex;
+    SemaphoreProducteur notFull;
+    SemaphoreConsommateur notEmpty;
+    SemaphoreMutex mutex;
     int in = 0;
     int out = 0;
     /**
@@ -34,9 +37,9 @@ public class ProdConsBuffer implements IProdConsBuffer {
     public ProdConsBuffer(int bufferSz, Operation operation) {
         this.bufferSz = bufferSz;
         buffer = new Message[ bufferSz ];
-        notFull = new Semaphore( bufferSz );
-        notEmpty = new Semaphore( 0 );
-        mutex = new Semaphore( 1 );
+        notFull = new SemaphoreProducteur( bufferSz );
+        notEmpty = new SemaphoreConsommateur( );
+        mutex = new SemaphoreMutex( 1 );
         this.operation = operation;
     }
 
@@ -45,57 +48,130 @@ public class ProdConsBuffer implements IProdConsBuffer {
 //        if( this.in == this.out ){
 //            return ;
 //        }
-        synchronized ( monitorProd ){
-            while ( this.tomsg == 2 ){
-                System.out.println( "Le producteur " + m.toString() + " est en attente pour la production");
-                monitorProd.wait();
-            }
-            /**
-             * incrémente le nombre de message dans le buffer avec
-             * le nouveau message arrivé
-             */
-            this.tomsg++;
-            /**
-             * Incrémente le nombre totale de message
-             */
-            this.totmsg++;
-            this.buffer[ this.in ] = m;
-            this.in = ( this.in + 1 ) % this.bufferSz ;
-            //this.nb_producer--;
-            monitorProd.notifyAll();
-            synchronized ( monitorCons ){
-                monitorCons.notifyAll();
-            }
-        }
-        //System.out.println("Liberation du verrou coté producteur");
+
+        notFull.P();
+        mutex.P();
+
+        /**
+         * incrémente le nombre de message dans le buffer avec
+         * le nouveau message arrivé
+         */
+        this.tomsg++;
+        /**
+         * Incrémente le nombre totale de message
+         */
+        this.totmsg++;
+        this.buffer[ this.in ] = m;
+        this.in = ( this.in + 1 ) % this.bufferSz ;
+        mutex.V();
+
+        notEmpty.V();
+
+//
+//        synchronized ( notFull ){
+//            while( this.tomsg == 2){
+//                System.out.println( "Le producteur " + m.toString() + " est en attente pour la production");
+//                notFull.wait();
+//            }
+//
+//            notFull.acquire();
+//
+//            /**
+//             * incrémente le nombre de message dans le buffer avec
+//             * le nouveau message arrivé
+//             */
+//            this.tomsg++;
+//            /**
+//             * Incrémente le nombre totale de message
+//             */
+//            this.totmsg++;
+//            this.buffer[ this.in ] = m;
+//            this.in = ( this.in + 1 ) % this.bufferSz ;
+//
+//            //notFull.release();
+//
+//
+//
+////            synchronized ( notEmpty ){
+////                notEmpty.notifyAll();
+////            }
+//
+//
+//        }
+
+        //notFull.notifyAll();
+
+
+//        synchronized ( monitorProd ){
+//            while ( this.tomsg == 2 ){
+//                System.out.println( "Le producteur " + m.toString() + " est en attente pour la production");
+//                monitorProd.wait();
+//            }
+//            /**
+//             * incrémente le nombre de message dans le buffer avec
+//             * le nouveau message arrivé
+//             */
+//            this.tomsg++;
+//            /**
+//             * Incrémente le nombre totale de message
+//             */
+//            this.totmsg++;
+//            this.buffer[ this.in ] = m;
+//            this.in = ( this.in + 1 ) % this.bufferSz ;
+//            //this.nb_producer--;
+//            monitorProd.notifyAll();
+//            synchronized ( monitorCons ){
+//                monitorCons.notifyAll();
+//            }
+//        }
 
     }
 
     @Override
     public Message get() throws InterruptedException {
-
-        synchronized ( monitorCons ){
-            while( this.tomsg == 0 ){
-                System.out.println( "le consommateur  est en attente de consommation de message");
-                if( this.operation.getNb_producer() ){
-                    throw new InterruptedException("Il n' y a plus de producteurs ");
-                }
-                monitorCons.wait();
-            }
-            /**
-             * Décrémenter le nombre de message dans le buffer
-             */
-            this.tomsg--;
-            Message m = this.buffer[ this.out ];
-            this.buffer[ this.out ] = null;
-            this.out = ( this.out + 1 ) % this.bufferSz ;
-            synchronized (monitorProd){
-                monitorProd.notifyAll();
-                System.out.println("reveil des producateurs bloqués après " + m.toString() + " "+ this.tomsg + " "+ this.buffer.length);
-            }
-            monitorCons.notifyAll();
-            return m;
+        if( this.operation.getNb_producer() ){
+            throw new InterruptedException("Il n' y' a plus de producteurs ");
         }
+
+        notEmpty.P();
+        mutex.P();
+
+        /**
+         * Décrémenter le nombre de message dans le buffer
+         */
+        this.tomsg--;
+        Message m = this.buffer[ this.out ];
+        this.buffer[ this.out ] = null;
+        this.out = ( this.out + 1 ) % this.bufferSz ;
+
+
+        mutex.V();
+
+        notFull.V();
+
+        return m;
+//        synchronized ( monitorCons ){
+//            while( this.tomsg == 0 ){
+//                System.out.println( "le consommateur  est en attente de consommation de message");
+//                if( this.operation.getNb_producer() ){
+//                    throw new InterruptedException("Il n' y a plus de producteurs ");
+//                }
+//                monitorCons.wait();
+//            }
+//            /**
+//             * Décrémenter le nombre de message dans le buffer
+//             */
+//            this.tomsg--;
+//            Message m = this.buffer[ this.out ];
+//            this.buffer[ this.out ] = null;
+//            this.out = ( this.out + 1 ) % this.bufferSz ;
+//            synchronized (monitorProd){
+//                monitorProd.notifyAll();
+//                System.out.println("reveil des producateurs bloqués après " + m.toString() + " "+ this.tomsg + " "+ this.buffer.length);
+//            }
+//            monitorCons.notifyAll();
+//            return m;
+//        }
 
     }
 

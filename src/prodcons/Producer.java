@@ -21,10 +21,10 @@ public class Producer implements Runnable{
     @Override
     public void run() {
         try {
-
             this.prodConsBuffer.put( message );
             System.out.println("Le Producteur " + message + " a produit le message ");
             this.operation.decrement();
+            System.out.println("operation : " + this.operation.getNb_producer());
             //System.out.println( "après production" + this.prodConsBuffer.toString() );
         } catch (InterruptedException e) {
             e.printStackTrace();
