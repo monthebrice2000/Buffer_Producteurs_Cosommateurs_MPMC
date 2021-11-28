@@ -1,5 +1,6 @@
 package prodcons.v1;
 
+import com.tontonlaforce.Operation;
 import prodcons.IProdConsBuffer;
 import prodcons.Message;
 
@@ -28,12 +29,15 @@ public class ProdConsBuffer implements IProdConsBuffer {
      */
     int totmsg = 0;
 
-    public ProdConsBuffer(int bufferSz) {
+    Operation operation;
+
+    public ProdConsBuffer(int bufferSz, Operation operation) {
         this.bufferSz = bufferSz;
         buffer = new Message[ bufferSz ];
         notFull = new Semaphore( bufferSz );
         notEmpty = new Semaphore( 0 );
         mutex = new Semaphore( 1 );
+        this.operation = operation;
     }
 
     @Override
@@ -43,7 +47,7 @@ public class ProdConsBuffer implements IProdConsBuffer {
 //        }
         synchronized ( monitorProd ){
             while ( this.tomsg == 2 ){
-                System.out.println( m.toString() + " est en attente pour la production");
+                System.out.println( "Le producteur " + m.toString() + " est en attente pour la production");
                 monitorProd.wait();
             }
             /**
@@ -57,10 +61,13 @@ public class ProdConsBuffer implements IProdConsBuffer {
             this.totmsg++;
             this.buffer[ this.in ] = m;
             this.in = ( this.in + 1 ) % this.bufferSz ;
+            //this.nb_producer--;
+            monitorProd.notifyAll();
             synchronized ( monitorCons ){
                 monitorCons.notifyAll();
             }
         }
+        //System.out.println("Liberation du verrou coté producteur");
 
     }
 
@@ -70,6 +77,9 @@ public class ProdConsBuffer implements IProdConsBuffer {
         synchronized ( monitorCons ){
             while( this.tomsg == 0 ){
                 System.out.println( "le consommateur  est en attente de consommation de message");
+                if( this.operation.getNb_producer() ){
+                    throw new InterruptedException("Il n' y a plus de producteurs ");
+                }
                 monitorCons.wait();
             }
             /**
@@ -79,12 +89,14 @@ public class ProdConsBuffer implements IProdConsBuffer {
             Message m = this.buffer[ this.out ];
             this.buffer[ this.out ] = null;
             this.out = ( this.out + 1 ) % this.bufferSz ;
-//            synchronized (monitorProd){
-//                this.monitorProd.notifyAll();
-//            }
-
+            synchronized (monitorProd){
+                monitorProd.notifyAll();
+                System.out.println("reveil des producateurs bloqués après " + m.toString() + " "+ this.tomsg + " "+ this.buffer.length);
+            }
+            monitorCons.notifyAll();
             return m;
         }
+
     }
 
     @Override
@@ -111,6 +123,10 @@ public class ProdConsBuffer implements IProdConsBuffer {
 
     public void setOut(int out) {
         this.out = out;
+    }
+
+    public int getTomsg() {
+        return tomsg;
     }
 
     @Override
