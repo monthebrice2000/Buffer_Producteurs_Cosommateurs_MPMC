@@ -15,9 +15,10 @@ public class SemaphoreProducteur {
         this.maxResource--;
     }
 
-    public synchronized void V(){
+    public synchronized int V(){
         this.maxResource++;
         notifyAll();
+        return this.maxResource;
 
     }
 }

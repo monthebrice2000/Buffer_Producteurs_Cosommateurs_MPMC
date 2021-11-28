@@ -38,16 +38,14 @@ public class ProdConsBuffer implements IProdConsBuffer {
         this.bufferSz = bufferSz;
         buffer = new Message[ bufferSz ];
         notFull = new SemaphoreProducteur( bufferSz );
-        notEmpty = new SemaphoreConsommateur( );
+        notEmpty = new SemaphoreConsommateur();
         mutex = new SemaphoreMutex( 1 );
         this.operation = operation;
     }
 
     @Override
     public void put(Message m) throws InterruptedException {
-//        if( this.in == this.out ){
-//            return ;
-//        }
+
 
         notFull.P();
         mutex.P();
@@ -129,11 +127,16 @@ public class ProdConsBuffer implements IProdConsBuffer {
 
     @Override
     public Message get() throws InterruptedException {
+
         if( this.operation.getNb_producer() ){
+            //notEmpty.V();
             throw new InterruptedException("Il n' y' a plus de producteurs ");
         }
 
+
         notEmpty.P();
+
+
         mutex.P();
 
         /**
@@ -146,7 +149,6 @@ public class ProdConsBuffer implements IProdConsBuffer {
 
 
         mutex.V();
-
         notFull.V();
 
         return m;
