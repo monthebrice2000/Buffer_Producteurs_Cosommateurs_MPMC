@@ -298,3 +298,198 @@ let i9 : instruction = Wh ( V a, axiome4 );;
 let axiome1 : saxiome = Axiome ( Epsilon, i1, Plus ( Epsilon, Axiome ( n_1, i2 , Plus ( Epsilon, Axiome ( n_1, i3, Plus ( Epsilon, Axiome ( n_1, i9, Plus (n_1, Epsilon)  )  ) )  ) )  ) );;
 (*let x = Axiome ( Seq ( Var 'x' , C Zero ), Plus (  Axiome ( Seq( Var 'x' , C Zero ), Plus( Epsilon ) ) ));;*)
 p_saxiome axiome1;; *)
+
+
+(* 2.2 Mecanique d'etats et Interpréteurs  *)
+let state : int list = [] ;;
+
+let rec init_state :  int * int list -> int list = fun (n , l) -> 
+	match n with
+	| 0 -> l
+	| n -> init_state ( n-1, 0::l );;
+
+init_state (4,state);;
+
+
+let rec get_var_i : int * int list -> int = fun ( n, l ) -> 
+	match n,l with
+	| 0, v::l -> v
+	| n, _::l -> get_var_i (n-1,l)
+	| _, _ -> 0;;
+
+get_var_i ( 2, 2::1::4::5::[] );;
+
+let rec update_var_i : int * int * int list -> int list = fun ( n, newVal, l ) ->
+	match n, l with
+	| 0, v::l -> newVal::l
+	| n, v::l -> v::( update_var_i ( n-1,newVal, l) )
+	| _, _ -> l;;
+
+state = 1::3::0::[];;
+
+let state2 : int list = 1::3::0::[];;
+update_var_i ( 2, 5, state2 );;
+
+state2;;
+
+
+type variable = Var of char*int
+type constante = Zero | One
+type expression = V of variable | C of constante
+
+type saxiome = Axiome of instruction * liste_inst | Epsilon 
+and liste_inst = Plus of saxiome | Epsilon 
+and instruction = Seq of variable * expression | IF of expression * saxiome * saxiome | Wh of expression * saxiome | Epsilon
+
+type 'res ana = 'res -> 'res (* un type qui renvoi un resultat sans information supplémentaire *)
+type 'res rana = 'res -> 'res * 'res  (* un type qui renvoie un résultat avec résultat supllémentaire *)
+
+
+exception Echec
+
+(*
+(* pour consommer 'x' la variable *)
+let p_variable : 'res ana = fun l ->
+  match l with
+  | Var (a,i) -> l
+  | _ -> raise Echec
+
+(* pour consommer 0 la constante du Faux *)
+let p_zero : 'res ana = fun l ->
+  match l with
+  |Zero -> l 
+  | _ -> raise Echec
+
+(* pour consommer 1 la constante du Vrai *)
+let p_one: 'res ana = fun l->
+  match l with
+  | One -> l
+  | _ -> raise Echec
+  
+(* pour consommer soit 0 ou soit 1 *)
+let p_constante: 'res ana = fun l ->
+  try p_zero l with
+    Echec -> p_one l
+
+(* pour consommer soit 0 soit 1 soit 'x' la variable *)
+let p_expression : 'res ana =
+	let p_expression1 : 'res ana = fun l -> match l with
+		| V x -> V ( p_variable x ) 
+		| _ -> raise Echec
+	and 
+		p_expression2 : 'res ana = fun l -> match l with
+		| C cst -> C ( p_constante cst )
+		| _ -> raise Echec
+	in fun l ->	try p_expression1 l with Echec -> p_expression2 l ;;
+
+(* pour consommer V:=E *)
+let p_seq : 'res ana = fun l ->
+  match l with  
+  | Seq ( var , exp ) -> Seq ( p_variable var, p_expression exp )
+  | _ -> raise Echec ;;
+
+
+(* pour consommer IL | Epsilon *)
+let rec p_saxiome : saxiome ana =
+	let p_saxiome1: saxiome ana = fun l -> match l with 
+		| Axiome ( instr, list_instr )  -> 
+			let instr = p_instruction instr in 
+			let list_instr = p_liste_inst list_instr in 
+			Axiome ( instr, list_instr )
+			
+		| _ -> raise Echec
+   and
+		p_saxiome2: saxiome ana = fun l -> l
+   in fun l -> try p_saxiome1 l with Echec -> p_saxiome2 l
+and 
+(* pour consommer ;S | Epsilon *)
+p_liste_inst : liste_inst ana =
+	let p_liste_instr1 : liste_inst ana = fun l -> match l with
+		| Plus saxiome1 -> let saxiome = p_saxiome saxiome1 in Plus saxiome
+		| _ -> raise Echec
+	and
+		p_liste_instr2 : liste_inst ana = fun l -> l
+	in fun l -> try p_liste_instr1 l with 
+						Echec -> p_liste_instr2 l 
+and 
+
+(* pour consommer V:=E | If E I_1 I_2 | Wh E I | Epsilon *)
+
+p_instruction: instruction ana =
+	let p_i1 : instruction ana = fun l -> p_seq l 
+	and 
+		p_i2 : instruction ana = fun l -> match l with
+			| IF (expr,saxiome1,saxiome2) -> 
+				let exp = p_expression expr in 
+				let saxiome1 = p_saxiome saxiome1 in 
+				let saxiome2 = p_saxiome saxiome2 in 
+				IF (exp,saxiome1,saxiome2)
+			| _ -> raise Echec
+	and 
+		p_i3 : instruction ana = fun l -> match l with
+			| Wh (exp,saxiome) -> 
+				let exp = p_expression exp in 
+				let saxiome = p_saxiome saxiome in 
+				Wh (exp, saxiome)
+			| _ -> raise Echec
+	and 
+		p_i4 : instruction ana = fun l -> l
+	in fun l -> try p_i1 l with 
+						Echec -> try p_i2 l with 
+										Echec -> try p_i3 l with 
+														Echec -> p_i4 l;; *)
+
+
+let p_variable' : 'res -> int * 'res = fun l ->
+  match l with
+  | Var (a,x) -> x,l
+  | _ -> raise Echec;;
+
+(* pour consommer 0 la constante du Faux *)
+let p_zero' : 'res -> int * 'res = fun l ->
+  match l with
+  |Zero -> 0 , l 
+  | _ -> raise Echec;;
+
+(* pour consommer 1 la constante du Vrai *)
+let p_one': 'res -> int * 'res = fun l->
+  match l with
+  | One -> 1, l
+  | _ -> raise Echec
+  
+(* pour consommer soit 0 ou soit 1 *)
+let p_constante': 'res -> int * 'res = fun l ->
+  try p_zero' l with
+    Echec -> p_one' l;;
+
+let p_expression' : expression ->int * expression =
+	let p_expression1' : expression -> int * expression = fun l -> match l with
+		| V x -> let ( i, x ) = p_variable' x in i, V ( x ) 
+		| _ -> raise Echec
+	and 
+		p_expression2' : expression -> int * expression = fun l -> match l with
+		| C cst -> let (valeur, cst ) = p_constante' cst in valeur, C ( cst )
+		| _ -> raise Echec
+	in fun l ->	try p_expression1' l with Echec -> p_expression2' l ;;
+
+let p_seq' : 'res ana = fun l ->
+  match l with  
+  | Seq ( var , exp ) -> Seq ( p_variable var, p_expression exp )
+  | _ -> raise Echec ;;
+
+let execute_inst :  instruction * int list-> int list = fun ( instr , l) ->
+	match instr with
+	| Seq ( var, exp ) -> let (i_var, _ ) = p_variable' var in let ( val_exp_i_var_exp, _ ) = p_expression' exp in update_var_i (i_var, val_exp_i_var_exp, l )
+	| _ -> raise Echec;;
+	
+
+let x0 : variable = Var ('x',0 );;
+let x1 : variable = Var ('x', 1);;
+let x2 : variable = Var ('x', 2);;
+let zero : constante = Zero;;
+let one : constante = One ;;
+let i1 : instruction = Seq ( x0 , C one );;
+execute_inst (i1,state2);;
+
+
+type config  = Fin of state * config | Inter of saxiome*state*config
