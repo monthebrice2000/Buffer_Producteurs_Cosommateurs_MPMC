@@ -1,6 +1,6 @@
 (* 1.1 DEFINITION ET ANALYSE D'UN LANGAGE DE PROGRAMMATION SIMPLE *)
 
-(*type variable = Var of char
+type variable = Var of char
 type constante = Zero | One
 type expression = V of variable | C of constante
 
@@ -126,11 +126,11 @@ let axiome4 : saxiome = Axiome ( i8, Plus Epsilon );;
 let i9 : instruction = Wh ( V a, axiome4 );;
 let axiome1 : saxiome = Axiome ( i1, Plus ( Axiome ( i2 , Plus ( Axiome ( i3, Plus ( Axiome (i9, Plus Epsilon)  )  ) )  ) )  );;
 (*let x = Axiome ( Seq ( Var 'x' , C Zero ), Plus (  Axiome ( Seq( Var 'x' , C Zero ), Plus( Epsilon ) ) ));;*)
-p_saxiome axiome1;; *)
+p_saxiome axiome1;;
 
 
 (** 2.1 IMPLEMENTATION DE L'ANALYSEUR SIMPLE **)
-(* type variable = Var of char
+type variable = Var of char
 type constante = Zero | One
 type expression = V of variable | C of constante
 
@@ -297,7 +297,7 @@ let axiome4 : saxiome = Axiome ( n_1_t_1, i8, Plus ( Epsilon, Epsilon ) );;
 let i9 : instruction = Wh ( V a, axiome4 );;
 let axiome1 : saxiome = Axiome ( Epsilon, i1, Plus ( Epsilon, Axiome ( n_1, i2 , Plus ( Epsilon, Axiome ( n_1, i3, Plus ( Epsilon, Axiome ( n_1, i9, Plus (n_1, Epsilon)  )  ) )  ) )  ) );;
 (*let x = Axiome ( Seq ( Var 'x' , C Zero ), Plus (  Axiome ( Seq( Var 'x' , C Zero ), Plus( Epsilon ) ) ));;*)
-p_saxiome axiome1;; *)
+p_saxiome axiome1;;
 
 
 (* 2.2 Mecanique d'etats et Interpréteurs  *)
