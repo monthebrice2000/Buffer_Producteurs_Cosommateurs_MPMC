@@ -492,4 +492,93 @@ let i1 : instruction = Seq ( x0 , C one );;
 execute_inst (i1,state2);;
 
 
-type config  = Fin of state * config | Inter of saxiome*state*config
+type config  = Fin of state * config | Inter of saxiome*state*config;;
+
+
+(* 3.2 ANALYSE LEXICALE ET SYNTAXIQUE *)
+
+
+(* Grammaire (U pour un-chiffre, A pour au-moins-un, C pour chiffres) :
+
+  U ::= '0' | ... | '9'
+
+  C ::= U C | epsilon
+
+Que l'on dÃ©compose en :
+
+  C ::= A | epsilon
+
+  A ::= U C
+
+ *);;
+
+type u = Chiffre of char  ;;
+type token = A of a and a = Chiffres of u * token | Epsilon
+
+type analist = char list -> char list
+type 'res ranalist = char list -> 'res * char list
+(* Idem en plus gÃ©nÃ©ral. *)
+type ('token, 'res) ranalist_gen = 'token list -> 'res * 'token list
+
+(* L'exception levÃ©e en cas de tentative d'analyse ratÃ©e. *)
+exception Echec
+
+(* Ne rien consommer *)
+let epsilon : analist = fun l -> l
+(* Un epsilon informatif *)
+let epsilon_res (info : 'res) : 'res ranalist =
+  fun l -> (info, l)
+
+(* Terminaux *)
+let terminal c : analist = fun l -> match l with
+  | x :: l when x = c -> l
+  | _ -> raise Echec
+
+let terminal_cond (p : char -> bool) : analist = fun l -> match l with
+  | x :: l when p x -> l
+  | _ -> raise Echec;;
+
+(* Le mÃªme avec rÃ©sultat *)
+let terminal_res (f : 'term -> 'res option) : 'res ranalist =
+  fun l -> match l with
+  | x :: l -> (match f x with Some y -> y, l | None -> raise Echec)
+  | _ -> raise Echec;;
+
+
+let est_chiffre c = '0' <= c && c <= '9';;
+
+(* Consommation de tous les chiffres en prÃ©fixe *)
+let rec chiffres : analist =
+  let un_chiffre : analist = terminal_cond est_chiffre in
+  let au_moins_un : analist = fun l ->
+    let l = un_chiffre l in
+    let l = chiffres l in
+    l
+  and aucun : analist = epsilon
+  in fun l ->
+     try au_moins_un l with Echec -> aucun l;;
+
+let val_chiffre : char -> int option = fun c ->
+  match c with
+  | '0' .. '9' -> Some (Char.code c - Char.code '0')
+  |_ -> None
+let un_chiffre : int ranalist =
+    terminal_res val_chiffre;;
+
+let rec sommechiffres : int ranalist =
+  let rec au_moins_un : int ranalist = fun l ->
+    let x, l = un_chiffre l in
+    let n, l = sommechiffres l in
+    x + n, l
+  and aucun : int ranalist = epsilon_res 0
+  in fun l ->
+     try au_moins_un l with Echec -> aucun l;;
+
+let rec horner : int -> int ranalist =
+  let rec au_moins_un : int -> int ranalist = fun a l ->
+    let x, l = un_chiffre l in
+    horner (10 * a + x) l
+  and aucun : int -> int ranalist = epsilon_res
+  in fun a l ->
+     try au_moins_un a l with Echec -> aucun a l;;
+ 
