@@ -2,6 +2,7 @@
 Require Import Bool Arith List.
 Import List.ListNotations.
 
+(*** 1.2 Semantique operationnelle structurée ***)
 
 (** ** Syntaxe des expressions arithétiques *)
 
@@ -116,6 +117,8 @@ Definition X := Ava 1.
 Definition Y := Ava 2.
 Definition Z := Ava 3.
 
+
+(*** 2.3 Preuve sur la SN ***)
 
 Inductive SN: winstr -> state -> state -> Prop :=
 | SN_Skip        : forall s,
