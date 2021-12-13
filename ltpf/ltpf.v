@@ -3,8 +3,6 @@ Require Import Bool Arith List.
 Import List.ListNotations.
 
 
-(** * On reprend ici les AST *)
-
 (** ** Syntaxe des expressions arithétiques *)
 
 Inductive aexp :=
@@ -12,7 +10,7 @@ Inductive aexp :=
 | Ava : nat -> aexp (* variables *)
 | Apl : aexp -> aexp -> aexp
 | Amu : aexp -> aexp -> aexp
-| Amo : aexp -> aexp -> aexp
+| Amo : aexp -> aexp -> aexp 
 .
 
 (** ** Syntaxe des expressions booléennes *)
@@ -37,19 +35,7 @@ Inductive winstr :=
 | While  : bexp -> winstr -> winstr
 .
 
-(** ** Quelques listes/états pour faire des tests *)
-(** Ci-dessous, S1 est un état dans lequel la variable numéro 0
-    vaut 1, la variable numéro 1 vaut 2, et toutes les autres
-    valent 0' (valeur par défaut).                                      *)
-(** Plus généralement, une variable (Ava i) étant représentée par le
-    numéro i, sa valeur dans un état S est la valeur en ieme position
-    de la liste qui représente cet état S. *)
-
 Definition state := list nat.
-
-Definition S1 := [1; 2].
-Definition S2 := [0; 3].
-Definition S3 := [0; 7; 5; 41].
 
 
 (** La fonction get x s rend la valeur de x dans s. *)
@@ -75,8 +61,6 @@ Fixpoint update (s:state) (v:nat) (n:nat): state :=
   | S v1, a :: l1 => a :: (update l1 v1 n)
   | S v1, nil     => 0 :: (update nil v1 n)
   end.
-
-Definition S4 := update (update (update (update (update S1 4 1) 3 2) 2 3) 1 4) 0 5.
 
 
 (** ** Sémantique fonctionnelle de aexp*)
@@ -133,23 +117,6 @@ Definition Y := Ava 2.
 Definition Z := Ava 3.
 
 
-(** Quelques expressions arithmétiques pour tester *)
-
-(** exp1 = x + 3 *)
-Definition E1 := Apl X N3.
-
-(** exp2 = y - 1 *)
-Definition E2 := Amo Y N1.
-
-(** exp3 = (x + y) * 2 *)
-Definition E3 := Amu (Apl X Y) N2.
-
-(** B1 :=  exp1 = 4 *)
-Definition B1 := Beqnat E1 N4.
-
-(** B2 := not ( bexp1 /\ (exp1 = 7) *)
-Definition B2 := Bnot (Band B1 (Beqnat X N2)).
-
 Inductive SN: winstr -> state -> state -> Prop :=
 | SN_Skip        : forall s,
                    SN Skip s s
@@ -181,11 +148,6 @@ Definition P1 := While (Bnot (Beqnat Ir N0)) corps_boucle.
 (** *** Calcul du carré avec des additions *)
 (** On code dans While un programme Pcarre correspondant à
     while not (i=n) do {i:= 1+i; x:= y+x ; y:= 2+y} *)
-(* (* *déjà définis *)
-Definition Il := 0.
-Definition Ir := Ava Il.
-Definition Xl := 1.
-Definition Xr := Ava Xl.*)
 Definition Yl := 2.
 Definition Yr := Ava Yl.
 Definition incrI := Assign Il (Apl N1 Ir).
@@ -225,9 +187,6 @@ Proof.
       reflexivity.
 Qed.
 
-(** Énoncer et démontrer que Pcarre n permet de calculer le carré de n *)
-(* Complétez ici NIVEAU 4
-   (pas de technique nouvelle, mais demande de la créativité *)
 
 Theorem reduction_Pcarre_n : SN (Pcarre 4) [0;0;1] [2;4;5].
 Proof.
@@ -237,19 +196,6 @@ Inductive SN1_Seq i1 i2 s s2 : Prop :=
 | SN1_Seq_intro : forall s1,
                   SN i1 s s1 -> SN i2 s1 s2 -> SN1_Seq i1 i2 s s2
 .
-
-(** On peut alors démontrer la conséquence suivante d'une hypothèse
-    respectant la condition (1) ci-dessus *)
-
-Lemma inv_Seq' : forall {i1 i2 s s2}, SN (Seq i1 i2) s s2 -> SN1_Seq i1 i2 s s2.
-Proof.
-  intros i1 i2 s s2 sn.
-  (** Ici in utilise une tactique magique de Coq. *)
-  inversion sn.
-  (** Puis une autre, pour nettoyer les égalités. *)
-  subst.
-  apply (SN1_Seq_intro _ _ _ _ _ H1 H4).
-Qed.
 
 Inductive SN1_trivial (s s1 : state) : Prop := Triv : SN1_trivial s s1.
 
@@ -296,8 +242,8 @@ Proof.
                    | (* SN_Seq *) i1 i2 s s1 s' sn1 hrec_sn1 sn2 hrec_sn2
                    | (* SN_If_true *) cond i1 i2 s s' e sn hrec_sn
                    | (* SN_If_false *) cond i1 i2 s s' e sn hrec_sn
-                   | (* SN_While_false *) (* complétez ici NIVEAU 1 *) cond i s e
-                   | (* SN_While_true *)  (* complétez ici NIVEAU 1 *) cond i s e
+                   | (* SN_While_false *) cond i s e
+                   | (* SN_While_true *) cond i s e
                    ].
   - apply SN'_Skip (** complétez ici NIVEAU 1 *).
   - apply SN'_Assign (** complétez ici NIVEAU 1 *).
@@ -305,9 +251,7 @@ Proof.
   - apply SN'_If_true. + apply e. + apply hrec_sn (** complétez ici NIVEAU 1 *).
   - apply SN'_If_false. + apply e. + apply hrec_sn (** complétez ici NIVEAU 1 *).
   - apply SN'_While_false.  apply e (** complétez ici NIVEAU 1 *).
-  - (** Le sous-but le plus intéressant, où les formulations diffèrent entre
-        SN' et SN *)
-    apply SN'_While_true.
+  - apply SN'_While_true.
     + apply H (** complétez ici NIVEAU 1 *).
     + eapply SN'_Seq.
       -- apply IHsn1 (** complétez ici NIVEAU 2 *).
@@ -333,9 +277,7 @@ Proof.
   - apply SN_If_true. + apply e. + apply hrec_sn (** complétez ici NIVEAU 1 *).
   - apply SN_If_false. + apply e. + apply hrec_sn (** complétez ici NIVEAU 1 *).
   - apply SN_While_false. apply e (** complétez ici NIVEAU 1 *).
-  - (** NIVEAU 4 *)
-    destruct (inv_Seq hrec_sn) as [s1 sn1 sn2].
-    (** On termine en utilisant ici SN_While_true *)
+  - destruct (inv_Seq hrec_sn) as [s1 sn1 sn2].
     + eapply SN_While_true.
       -- apply e.
       -- apply sn1.
