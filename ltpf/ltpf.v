@@ -286,3 +286,150 @@ Proof.
       -- apply sn1.
       -- apply sn2.
 Qed.
+
+
+
+
+
+
+(** 2.4 Preuve sur la semantique opérationnelle **)
+
+(** * SOS (Sémantique opérationnelle à petits pas) du langage While *)
+
+Inductive config :=
+| Inter : winstr -> state -> config
+| Final : state -> config.
+
+(** Exercice 2.4.1 ***)
+
+(** Formaliser la propriété indiquant que la relation SOS est transitive. **)
+
+Inductive SOS_1: winstr -> state -> config -> Prop :=
+| SOS_Skip     : forall s,
+                 SOS_1 Skip s (Final s)
+
+| SOS_Assign   : forall x a s,
+                 SOS_1 (Assign x a) s (Final (update s x (evalA a s)))
+
+| SOS_Seqf     : forall i1 i2 s s1,
+                 SOS_1 i1 s (Final s1) ->
+                 SOS_1 (Seq i1 i2) s (Inter i2 s1)
+| SOS_Seqi     : forall i1 i1' i2 s s1,
+                 SOS_1 i1 s (Inter i1' s1) ->
+                 SOS_1 (Seq i1 i2) s (Inter (Seq i1' i2) s1)
+
+| SOS_If_true  : forall b i1 i2 s,
+ 
+                evalB b s = true  ->
+                 SOS_1 (If b i1 i2) s (Inter i1 s)
+| SOS_If_false : forall b i1 i2 s,
+                 evalB b s = false ->
+                 SOS_1 (If b i1 i2) s (Inter i2 s)
+
+| SOS_While    : forall b i s,
+                 SOS_1 (While b i) s (Inter (If b (Seq i (While b i)) Skip) s)
+.
+
+(** Fermeture réflexive-transitive de SOS_1 *)
+(** Cette sémantique donne toutes les configurations atteignables
+    par un (AST de) programme en partant d'un état initial.
+ *)
+
+
+
+Inductive SOS : config -> config -> Prop :=
+| SOS_stop  : forall c, SOS c c
+| SOS_again : forall i1 s1 c2 c3,
+              SOS_1 i1 s1 c2 -> SOS c2 c3 ->
+              SOS (Inter i1 s1) c3.
+
+
+(* Exercice 2.4.2 Programme WHILE Pcarre_2. *)
+
+Definition N0 := Aco 0.
+Definition N1 := Aco 1.
+Definition N2 := Aco 2.
+Definition N3 := Aco 3.
+Definition N4 := Aco 4.
+
+
+(** *** Calcul du carré avec des additions *)
+(** On code dans While un programme Pcarre correspondant à
+    while not (i=n) do {i:= 1+i; x:= y+x ; y:= 2+y} *)
+Definition Il := 0.
+Definition Ir := Ava Il.
+Definition Xl := 1.
+Definition Xr := Ava Xl.
+Definition Yl := 2.
+Definition Yr := Ava Yl.
+
+Definition incrI := Assign Il (Apl N1 Ir).
+Definition incrX := Assign Xl (Apl Yr Xr).
+Definition incrY := Assign Yl (Apl N2 Yr).
+Definition corps_carre := Seq incrI (Seq incrX incrY).
+Definition Pcarre_2 := While (Bnot (Beqnat Ir (Aco 2))) corps_carre.
+Definition Pcarre n := While (Bnot (Beqnat Ir (Aco n))) corps_carre.
+Definition Pcarre_inf := While Btrue corps_carre.
+
+Lemma SOS_Pcarre_2_1er_tour : SOS (Inter Pcarre_2 [0;0;1]) (Inter Pcarre_2 [1; 1; 3]).
+Proof.
+  eapply SOS_again.
+  { apply SOS_While. }
+  (*{ cbn. eapply SOS_again. 
+    - apply SOS_If_true. cbn. reflexivity.
+    - eapply SOS_again.
+      + apply SOS_Seqi. cbv. apply SOS_Seqf. apply SOS_Assign. 
+      + eapply SOS_again.
+  }*)
+   cbn.
+  (** on a pas pu arrêter la preuve **)
+Admitted.
+
+Theorem SOS_Pcarre_inf_1er_tour : SOS (Inter Pcarre_inf [0;0;1]) (Inter Pcarre_inf [1; 1; 3]).
+Proof.
+  eapply SOS_again.
+  - cbv. Undo. apply SOS_While.
+  - eapply SOS_again.
+    -- apply SOS_If_true. cbn. reflexivity.
+    -- eapply SOS_again.
+      --- apply SOS_Seqi. apply SOS_Seqf. apply SOS_Assign.
+      --- eapply SOS_again.
+        ---- apply SOS_Seqi. cbn. apply SOS_Seqf. apply SOS_Assign.
+Admitted.
+
+Theorem SOS_Pcarre_2_V0 : SOS (Inter Pcarre_2 [0;0;1]) (Final [2;4;5]).
+Proof.
+ eapply SOS_again.
+  - cbv. Undo. apply SOS_While.
+  - eapply SOS_again.
+    -- apply SOS_If_true. cbn. reflexivity.
+    -- eapply SOS_again.
+      --- apply SOS_Seqi. apply SOS_Seqf. apply SOS_Assign.
+      --- eapply SOS_again.
+        ---- apply SOS_Seqi. cbn. apply SOS_Seqf. apply SOS_Assign.
+Admitted.
+
+
+(** Propriété essentielle de SOS, qui a un intérêt pratique. *)
+Theorem SOS_trans : forall c1 c2 c3, SOS c1 c2 -> SOS c2 c3 -> SOS c1 c3.
+Proof.
+  intros c1 c2 c3 sos1 sos2.
+Admitted.
+
+(** Il n'est pas demandé de faire celui-ci
+    (bien qu'un copié-collé d'un lemme précédent fonctionne). *)
+Lemma SOS_Pcarre_2_2e_tour : SOS (Inter Pcarre_2 [1; 1; 3]) (Inter Pcarre_2 [2; 4; 5]).
+Proof.
+  eapply SOS_trans.
+  -
+Admitted.
+
+Theorem SOS_Pcarre_2_fini : SOS (Inter Pcarre_2 [2; 4; 5]) (Final [2; 4; 5]).
+Proof.
+Admitted.
+
+(** Même énoncé que SOS_Pcarre_2_V0. Utiliser SOS_trans *)
+Theorem SOS_Pcarre_2_fin_V1 : SOS (Inter Pcarre_2 [0;0;1]) (Final [2;4;5]).
+Proof.
+  apply SOS_trans with (Inter Pcarre_2 [1; 1; 3]).
+Admitted.
