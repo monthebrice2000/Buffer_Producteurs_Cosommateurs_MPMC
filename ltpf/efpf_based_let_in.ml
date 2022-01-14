@@ -149,25 +149,22 @@ and
 				p_Li2 : (linstr,char) ranalist = fun l -> ( Skip, l)
 			in fun l -> try p_Li1 l with Echec -> p_Li2 l
 and 
-		p_I : (linstr, char) ranalist = fun l -> l |>
-			(**let p_I1 : (linstr,char) ranalist = fun l -> 
+		p_I : (linstr, char) ranalist =
+			let p_I1 : (linstr,char) ranalist = fun l -> 
 				let i1 = terminal 'L' l in
 				let (val_loop, i2) = chiffre i1 in 
 				let i3 = terminal '(' i2 in 
 				let (info4, i4) = p_P i3 in
-				let i5 = terminal ')' i4 in (Loop(val_loop, info4 )), i5 )
+				let i5 = terminal ')' i4 in (Loop(val_loop, info4 ), i5 )
 			and 
 				p_I2: (linstr,char) ranalist = fun l ->
 					let i1 = terminal 'R' l in
 					let (variable, i2) = lettre i1 in (Reset(variable),i2)
 			and 
 				p_I3: (linstr,char) ranalist = fun l ->
-					let i1 = terminal 'L' l in 
+					let i1 = terminal 'I' l in 
 					let (variable, i2) = lettre i1 in (Incr(variable),i2)
-			in fun l -> try p_I1 l with Echec -> try p_I2 l with Echec -> p_I3 l **)
-	( terminal 'L' -+> chiffre ++>  fun val_loop -> terminal '(' -+> p_P  ++> fun i1 -> terminal ')' -+> epsilon_res (Loop(val_loop, i1 ))) +|
-	( terminal 'R' -+> lettre ++> fun variable -> epsilon_res (Reset(variable))) +|
-	( terminal 'I' -+> lettre ++> fun variable -> epsilon_res (Incr(variable)));;
+			in fun l -> try p_I1 l with Echec -> try p_I2 l with Echec -> p_I3 l;;
 (* rappel : les boucles utilisent des entiers entre 0 et 9 (pas besoin de Horner) *)
      
 let test s = p_P (lexer s);;
