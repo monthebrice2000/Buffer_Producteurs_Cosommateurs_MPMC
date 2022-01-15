@@ -14,11 +14,11 @@
    une note satisfaisante, ni même la note maximale !    
    *)
 
-let prenom: string = "Brice";;
-let nom: string = "MONTHE";;
+let prenom: string = "Brice"
+let nom: string = "MONTHE"
     
-exception TODO of string;;
-exception PRESQUE of string;;
+exception TODO of string
+exception PRESQUE of string
 (*  Vous  pouvez  utilisez  l'exception PRESQUE  si  vous  avez  un
    programme qui  marche presque.  Si  une telle exception  est levée,
    nous irons lire votre code pour voir s'il mérite quelques points.
@@ -51,7 +51,7 @@ L 4 (
   I b;
   L 5 ( I a )
 )
-";;
+"
 let prog2 = "R a;
 R b;
 I a; I a;
@@ -61,7 +61,7 @@ L 9 (
   I b;
   L 5 ( I a )
 )
-";;
+"
 
 (*  [**]  Écrivez  une   grammaire  reconnaissant  les  2  programmes
    ci-dessus. Faites le dans  la chaîne (string) grammaire ci-dessous
@@ -118,20 +118,20 @@ let chiffre : (int, char) ranalist =
     match c with
     | '0' .. '9' -> Some (Char.code c - Char.code '0')
     |_ -> None
-  in terminal_res valchiffre;;
+  in terminal_res valchiffre
 
 let lettre : (char, char) ranalist =
   let char_lettre : char -> char option = fun c ->
     match c with
     | 'a' .. 'z' -> Some c
     |_ -> None
-  in terminal_res char_lettre;;
+  in terminal_res char_lettre
 
-let x =(list_of_string "3onthe" );;
+let x =(list_of_string "3onthe" )
 
-let test_1 = fun l -> l |> chiffre ++> fun b -> epsilon_res b ;;
+let test_1 = fun l -> l |> chiffre ++> fun b -> epsilon_res b 
 
-let _ = test_1 x;;
+let _ = test_1 x
               
 let rec p_P : (linstr, char) ranalist =
 	let p_P1 : (linstr, char) ranalist = fun l ->
@@ -164,7 +164,7 @@ and
 				p_I3: (linstr,char) ranalist = fun l ->
 					let i1 = terminal 'I' l in 
 					let (variable, i2) = lettre i1 in (Incr(variable),i2)
-			in fun l -> try p_I1 l with Echec -> try p_I2 l with Echec -> p_I3 l;;
+			in fun l -> try p_I1 l with Echec -> try p_I2 l with Echec -> p_I3 l
 (* rappel : les boucles utilisent des entiers entre 0 et 9 (pas besoin de Horner) *)
      
 let test s = p_P (lexer s);;

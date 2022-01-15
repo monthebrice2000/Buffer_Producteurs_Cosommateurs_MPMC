@@ -14,11 +14,11 @@
    une note satisfaisante, ni même la note maximale !    
    *)
 
-let prenom: string = "Brice";;
-let nom: string = "MONTHE";;
+let prenom: string = "Brice"
+let nom: string = "MONTHE"
     
-exception TODO of string;;
-exception PRESQUE of string;;
+exception TODO of string
+exception PRESQUE of string
 (*  Vous  pouvez  utilisez  l'exception PRESQUE  si  vous  avez  un
    programme qui  marche presque.  Si  une telle exception  est levée,
    nous irons lire votre code pour voir s'il mérite quelques points.
@@ -51,7 +51,7 @@ L 4 (
   I b;
   L 5 ( I a )
 )
-";;
+"
 let prog2 = "R a;
 R b;
 I a; I a;
@@ -61,7 +61,7 @@ L 9 (
   I b;
   L 5 ( I a )
 )
-";;
+"
 
 (*  [**]  Écrivez  une   grammaire  reconnaissant  les  2  programmes
    ci-dessus. Faites le dans  la chaîne (string) grammaire ci-dessous
@@ -96,14 +96,7 @@ let lexer : string -> char list = fun s ->
     if i = n then [] else if blank s.[i] then boucle (i+1) else s.[i] :: boucle (i+1)
   in boucle 0;;
     
-(* En utilisant le fichier anacomb.ml qui vous est fourni... *)
-
 #use "anacomb.ml";;
-
-(*  ...    écrivez  un  analyseur  syntaxique   (p_P)  permettant  de
-   reconnaître  les programmes  définis  par votre  grammaire, et  de
-   construire  un arbre  syntaxique dont  le type  en ocaml  vous est
-   fourni ci-dessous *)
 
 type var = char
 type linstr =
@@ -118,14 +111,14 @@ let chiffre : (int, char) ranalist =
     match c with
     | '0' .. '9' -> Some (Char.code c - Char.code '0')
     |_ -> None
-  in terminal_res valchiffre;;
+  in terminal_res valchiffre
 
 let lettre : (char, char) ranalist =
   let char_lettre : char -> char option = fun c ->
     match c with
     | 'a' .. 'z' -> Some c
     |_ -> None
-  in terminal_res char_lettre;;
+  in terminal_res char_lettre
               
 let rec p_P : (linstr, char) ranalist = fun l -> l |>
 	( p_I ++> fun i1 -> p_Li ++> fun i2 -> epsilon_res (Seq(i1, i2) ) ) +|
@@ -138,7 +131,7 @@ and
 		p_I : (linstr, char) ranalist = fun l -> l |>
 	( terminal 'L' -+> chiffre ++>  fun val_loop -> terminal '(' -+> p_P  ++> fun i1 -> terminal ')' -+> epsilon_res (Loop(val_loop, i1 ))) +|
 	( terminal 'R' -+> lettre ++> fun variable -> epsilon_res (Reset(variable))) +|
-	( terminal 'I' -+> lettre ++> fun variable -> epsilon_res (Incr(variable)));;
+	( terminal 'I' -+> lettre ++> fun variable -> epsilon_res (Incr(variable)))
 (* rappel : les boucles utilisent des entiers entre 0 et 9 (pas besoin de Horner) *)
      
 let test s = p_P (lexer s);;
